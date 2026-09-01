@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +8,7 @@ namespace WildWest
     public class WeaponHudView : MonoBehaviour
     {
         [SerializeField] private PlayerCombat _combat;
+        [SerializeField] private PlayerInputReader _inputReader;
         [SerializeField] private Firearm _firearm;
         [SerializeField] private Text _label;
         [SerializeField] private Image _reticle;
@@ -19,6 +21,15 @@ namespace WildWest
 
         private void Awake()
         {
+            if (_combat == null
+                || _inputReader == null
+                || _firearm == null
+                || _label == null
+                || _reticle == null)
+            {
+                throw new InvalidOperationException("WeaponHudView requires all HUD dependencies.");
+            }
+
             _reticle.color = _defaultReticleColor;
         }
 
@@ -46,9 +57,10 @@ namespace WildWest
 
         private void OnWeaponChanged(WeaponKind weapon)
         {
+            string binding = _inputReader.WeaponToggleBinding.ToUpperInvariant();
             _label.text = weapon == WeaponKind.Firearm
-                ? "REVOLVER     [Q] SWITCH"
-                : "KNIFE     [Q] SWITCH";
+                ? $"REVOLVER     [{binding}] SWITCH"
+                : $"KNIFE     [{binding}] SWITCH";
             _reticle.enabled = weapon == WeaponKind.Firearm;
         }
 

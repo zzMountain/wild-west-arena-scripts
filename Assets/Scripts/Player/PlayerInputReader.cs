@@ -25,6 +25,19 @@ namespace WildWest
 
         public Vector2 Movement { get; private set; }
         public Vector2 Look { get; private set; }
+        public string WeaponToggleBinding
+        {
+            get
+            {
+                InputAction toggleAction = _toggleWeaponAction
+                    ?? _actions.FindActionMap(PlayerMapName, true).FindAction(ToggleWeaponActionName, true);
+                string bindingPath = toggleAction.bindings[0].effectivePath;
+
+                return InputControlPath.ToHumanReadableString(
+                    bindingPath,
+                    InputControlPath.HumanReadableStringOptions.OmitDevice);
+            }
+        }
 
         private void Awake()
         {

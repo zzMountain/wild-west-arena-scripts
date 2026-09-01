@@ -12,26 +12,21 @@ namespace WildWest
         [SerializeField, Min(0f)] private float _cooldown = 0.3f;
         [SerializeField] private LayerMask _hitMask;
         [SerializeField] private Transform _muzzle;
-        [SerializeField] private ParticleSystem _shotEffect;
 
         private readonly RaycastHit[] _hitBuffer = new RaycastHit[HitBufferSize];
-        private Health _ownerHealth;
         private float _nextAttackTime;
 
-        public event Action Fired;
         public event Action<ShotResult> ShotResolved;
 
         public Transform Muzzle => _muzzle;
 
         private void Awake()
         {
-            _ownerHealth = GetComponentInParent<Health>();
-
-            if (_ownerHealth == null)
-                throw new InvalidOperationException("Firearm requires an owner Health in its parent hierarchy.");
-
             if (_hitMask.value == 0)
                 throw new InvalidOperationException("Firearm hit mask must be configured.");
+
+            if (_muzzle == null)
+                throw new InvalidOperationException("Firearm requires a muzzle.");
         }
 
         public bool TryAttack(Camera aimCamera)
@@ -41,7 +36,7 @@ namespace WildWest
 
             _nextAttackTime = Time.time + _cooldown;
             Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-            Vector3 origin = _muzzle != null ? _muzzle.position : transform.position;
+            Vector3 origin = _muzzle.position;
             Vector3 aimPoint = ray.GetPoint(_range);
 
             if (Physics.Raycast(ray, out RaycastHit cameraHit, _range, _hitMask, QueryTriggerInteraction.Ignore))
@@ -55,7 +50,7 @@ namespace WildWest
             bool hitSurface = false;
             bool hitDamageable = false;
             bool killedTarget = false;
-            int closestHitIndex = FindClosestValidHit(origin, shotDirection, shotDistance);
+            int closestHitIndex = FindClosestHit(origin, shotDirection, shotDistance);
 
             if (closestHitIndex >= 0)
             {
@@ -63,22 +58,15 @@ namespace WildWest
                 hitSurface = true;
                 point = hit.point;
                 normal = hit.normal;
-                IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
-
-                if (damageable != null && ReferenceEquals(damageable, _ownerHealth) == false)
+                if (hit.collider.TryGetComponent(out IDamageable damageable))
                 {
-                    Health targetHealth = hit.collider.GetComponentInParent<Health>();
-                    bool wasAlive = targetHealth != null && targetHealth.IsAlive;
+                    bool wasAlive = damageable.IsAlive;
                     damageable.ApplyDamage(_damage);
                     hitDamageable = true;
-                    killedTarget = wasAlive && targetHealth.IsAlive == false;
+                    killedTarget = wasAlive && damageable.IsAlive == false;
                 }
             }
 
-            if (_shotEffect != null)
-                _shotEffect.Play(true);
-
-            Fired?.Invoke();
             ShotResolved?.Invoke(new ShotResult(
                 origin,
                 point,
@@ -89,7 +77,7 @@ namespace WildWest
             return true;
         }
 
-        private int FindClosestValidHit(Vector3 origin, Vector3 direction, float distance)
+        private int FindClosestHit(Vector3 origin, Vector3 direction, float distance)
         {
             int hitCount = Physics.RaycastNonAlloc(
                 origin,
@@ -103,9 +91,7 @@ namespace WildWest
 
             for (int i = 0; i < hitCount; i++)
             {
-                Health hitOwner = _hitBuffer[i].collider.GetComponentInParent<Health>();
-
-                if (hitOwner == _ownerHealth || _hitBuffer[i].distance >= closestDistance)
+                if (_hitBuffer[i].distance >= closestDistance)
                     continue;
 
                 closestDistance = _hitBuffer[i].distance;

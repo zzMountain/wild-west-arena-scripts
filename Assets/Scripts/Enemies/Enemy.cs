@@ -4,12 +4,12 @@ using UnityEngine;
 namespace WildWest
 {
     [RequireComponent(typeof(CharacterController), typeof(Health))]
-    [RequireComponent(typeof(EnemyMover), typeof(EnemyAttack))]
+    [RequireComponent(typeof(EnemyMover), typeof(MeleeWeapon))]
     public class Enemy : MonoBehaviour
     {
         private Health _health;
         private EnemyMover _mover;
-        private EnemyAttack _attack;
+        private MeleeWeapon _meleeWeapon;
         private CharacterController _characterController;
         private Health _targetHealth;
         private Transform _target;
@@ -23,7 +23,7 @@ namespace WildWest
         {
             _health = GetComponent<Health>();
             _mover = GetComponent<EnemyMover>();
-            _attack = GetComponent<EnemyAttack>();
+            _meleeWeapon = GetComponent<MeleeWeapon>();
             _characterController = GetComponent<CharacterController>();
         }
 
@@ -45,10 +45,10 @@ namespace WildWest
             Vector3 offset = _target.position - transform.position;
             offset.y = 0f;
 
-            if (offset.sqrMagnitude <= _attack.Range * _attack.Range)
+            if (offset.sqrMagnitude <= _meleeWeapon.Range * _meleeWeapon.Range)
             {
                 _mover.FaceTarget(_target);
-                _attack.TryAttack(_targetHealth);
+                _meleeWeapon.TryAttack();
             }
             else
             {
@@ -63,15 +63,18 @@ namespace WildWest
             IsBoss = isBoss;
             _health.Configure(stats.Health);
             _mover.Initialize(stats.MoveSpeed);
-            float impactDelay = isBoss ? 0.55f : 0.32f;
-            _attack.Initialize(stats.AttackDamage, stats.AttackRange, stats.AttackCooldown, impactDelay);
+            _meleeWeapon.Initialize(
+                stats.AttackDamage,
+                stats.AttackRange,
+                stats.AttackCooldown,
+                stats.ImpactDelay);
         }
 
         private void OnDied()
         {
             enabled = false;
             _mover.enabled = false;
-            _attack.enabled = false;
+            _meleeWeapon.enabled = false;
             _characterController.enabled = false;
             Died?.Invoke(this);
             Destroy(gameObject, 2.35f);

@@ -26,7 +26,7 @@ namespace WildWest
         private CharacterController _characterController;
         private Animator _animator;
         private PlayerCombat _playerCombat;
-        private EnemyAttack _enemyAttack;
+        private MeleeWeapon _meleeWeapon;
         private Health _health;
         private int _currentBaseState;
         private int _currentUpperState;
@@ -39,7 +39,7 @@ namespace WildWest
             _characterController = GetComponent<CharacterController>();
             _health = GetComponent<Health>();
             _playerCombat = GetComponent<PlayerCombat>();
-            _enemyAttack = GetComponent<EnemyAttack>();
+            _meleeWeapon = GetComponent<MeleeWeapon>();
 
             if (_visualRoot == null)
                 throw new InvalidOperationException("CharacterMotionView requires a visual root.");
@@ -64,8 +64,8 @@ namespace WildWest
             if (_playerCombat != null)
                 _playerCombat.AttackStarted += OnPlayerAttackStarted;
 
-            if (_enemyAttack != null)
-                _enemyAttack.Attacked += OnEnemyAttacked;
+            if (_playerCombat == null && _meleeWeapon != null)
+                _meleeWeapon.AttackStarted += OnEnemyAttackStarted;
         }
 
         private void Start()
@@ -121,8 +121,8 @@ namespace WildWest
             if (_playerCombat != null)
                 _playerCombat.AttackStarted -= OnPlayerAttackStarted;
 
-            if (_enemyAttack != null)
-                _enemyAttack.Attacked -= OnEnemyAttacked;
+            if (_playerCombat == null && _meleeWeapon != null)
+                _meleeWeapon.AttackStarted -= OnEnemyAttackStarted;
         }
 
         private int GetRestingUpperState()
@@ -158,7 +158,7 @@ namespace WildWest
             PlayUpper(state, weapon == WeaponKind.Firearm ? 0.03f : 0.05f);
         }
 
-        private void OnEnemyAttacked()
+        private void OnEnemyAttackStarted()
         {
             _upperAttackTime = 1.5f;
             PlayUpper(MeleeAttackState, 0.05f);

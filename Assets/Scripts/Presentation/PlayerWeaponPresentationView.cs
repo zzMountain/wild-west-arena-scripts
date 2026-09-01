@@ -44,7 +44,7 @@ namespace WildWest
         private void OnEnable()
         {
             _combat.WeaponChanged += OnWeaponChanged;
-            _firearm.Fired += OnFirearmFired;
+            _firearm.ShotResolved += OnShotResolved;
         }
 
         private void Start()
@@ -56,7 +56,7 @@ namespace WildWest
         private void OnDisable()
         {
             _combat.WeaponChanged -= OnWeaponChanged;
-            _firearm.Fired -= OnFirearmFired;
+            _firearm.ShotResolved -= OnShotResolved;
         }
 
         private void LateUpdate()
@@ -74,7 +74,7 @@ namespace WildWest
             ShowWeapon(weapon);
         }
 
-        private void OnFirearmFired()
+        private void OnShotResolved(ShotResult result)
         {
             _weaponKick = 1f;
         }

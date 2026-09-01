@@ -18,22 +18,17 @@ namespace WildWest
 
         private readonly Collider[] _hitBuffer = new Collider[HitBufferSize];
         private readonly HashSet<IDamageable> _damagedTargets = new HashSet<IDamageable>();
-        private Health _ownerHealth;
         private Coroutine _attackRoutine;
         private WaitForSeconds _impactWait;
         private float _nextAttackTime;
 
-        public event Action Swung;
+        public event Action AttackStarted;
 
         public Transform AttackPoint => _attackPoint;
+        public float Range => _radius;
 
         private void Awake()
         {
-            _ownerHealth = GetComponentInParent<Health>();
-
-            if (_ownerHealth == null)
-                throw new InvalidOperationException("MeleeWeapon requires an owner Health in its parent hierarchy.");
-
             if (_attackPoint == null)
                 throw new InvalidOperationException("MeleeWeapon requires an attack point.");
 
@@ -63,13 +58,23 @@ namespace WildWest
 
         public bool TryAttack()
         {
-            if (Time.time < _nextAttackTime)
+            if (_attackRoutine != null || Time.time < _nextAttackTime)
                 return false;
 
             _nextAttackTime = Time.time + _cooldown;
-            Swung?.Invoke();
+            AttackStarted?.Invoke();
             _attackRoutine = StartCoroutine(ApplyDamageAfterWindup());
             return true;
+        }
+
+        public void Initialize(int damage, float range, float cooldown, float impactDelay)
+        {
+            _damage = Mathf.Max(1, damage);
+            _radius = Mathf.Max(0.1f, range);
+            _cooldown = Mathf.Max(0f, cooldown);
+            _impactDelay = Mathf.Max(0f, impactDelay);
+            _impactWait = new WaitForSeconds(_impactDelay);
+            _nextAttackTime = 0f;
         }
 
         private IEnumerator ApplyDamageAfterWindup()
@@ -85,14 +90,9 @@ namespace WildWest
 
             for (int i = 0; i < hitCount; i++)
             {
-                IDamageable damageable = _hitBuffer[i].GetComponentInParent<IDamageable>();
-
-                if (damageable != null
-                    && ReferenceEquals(damageable, _ownerHealth) == false
+                if (_hitBuffer[i].TryGetComponent(out IDamageable damageable)
                     && _damagedTargets.Add(damageable))
-                {
                     damageable.ApplyDamage(_damage);
-                }
             }
 
             _attackRoutine = null;
